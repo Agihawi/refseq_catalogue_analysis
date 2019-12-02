@@ -1,0 +1,85 @@
+library(ggpubr)
+library(plotly)
+library(ggplot2)
+library(readr)
+library(dplyr)
+library(stringr)
+library(lubridate)
+library(gganimate)
+library(reshape2)
+
+refseq <- read_tsv(file='../data/refseq_analysis.tsv')
+refseq$date_of_release <- ymd(refseq$date_of_release)
+refseq <- arrange(refseq, date_of_release)
+
+#Calculate size of catalogue in bytes
+refseq <- refseq %>% mutate(catalogue_size_multiplier = case_when(
+  str_detect(catalogue_size, 'K') ~ 1000,
+  str_detect(catalogue_size, 'M') ~ 1000000,
+  str_detect(catalogue_size, 'G') ~ 1000000000,
+  str_detect(catalogue_size, 'T') ~ 1000000000000,
+  TRUE ~ 1
+))
+refseq$catalogue_size <- gsub('K|M|G|T', '', refseq$catalogue_size)
+refseq$catalogue_size <- as.numeric(refseq$catalogue_size)
+
+refseq <- refseq %>% 
+  mutate(catalogue_size = catalogue_size_multiplier * catalogue_size) %>% 
+  select(-catalogue_size_multiplier, -category)
+
+## RefSeq Genomes Analysis
+
+species_plot <-ggplot(refseq, aes(x=date_of_release, y=unique_species)) +
+  geom_line() +
+  geom_point() +
+  labs(y='Number of Unique Species',
+       x='Date of Release',
+       title='Number of Unique Species in NCBI RefSeq') +
+  theme_pubclean() +
+  theme(plot.title=element_text(hjust=0.5))
+
+species_plot
+
+ggsave(species_plot, file='../plots/species_refseq_plots.png', width=7, height=7)
+
+size_plot <- ggplot(refseq, aes(x=date_of_release, y=catalogue_size/1000000000)) +
+  geom_line() +
+  geom_point() +
+    labs(y='Catalogue Size (GB)',
+       x='Date of Release',
+       title='Size of NCBI RefSeq Catalogues over time') +
+  theme_pubclean() +
+  theme(plot.title=element_text(hjust=0.5))
+
+size_plot
+
+ggsave(size_plot, file='../plots/refseq_catalogue_size.png', width=7, height=7)
+
+
+
+complete <- refseq %>% select(date_of_release, complete_microbial, complete_fungi, complete_viral, complete_plant, complete_mammalian, complete_protozoa )#complete_bacterial
+
+complete$date_of_release <- as.factor(complete$date_of_release)
+complete_melt <- melt(complete)
+complete_melt$date_of_release <- ymd(complete_melt$date_of_release)
+
+combi_plot <-ggplot(complete_melt, aes(x=date_of_release, y=value, colour=variable)) +
+  geom_line() +
+  geom_point() +
+  labs(y='Number of Unique Species',
+       x='Date of Release',
+       title='Number of Unique Species in NCBI RefSeq') +
+  theme_pubclean() +
+  theme(plot.title=element_text(hjust=0.5),
+        legend.position='right')
+
+combi_plot
+
+ggsave(combi_plot, file='../plots/combi_refseq_plots.png', width=9, height=7)
+
+
+
+
+
+
+
