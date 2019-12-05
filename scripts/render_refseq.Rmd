@@ -17,6 +17,8 @@ library(lubridate)
 library(gganimate)
 library(reshape2)
 
+options(scipen=999)
+
 refseq <- read_tsv(file='../data/refseq_analysis.tsv')
 refseq$date_of_release <- ymd(refseq$date_of_release)
 refseq <- arrange(refseq, date_of_release)
@@ -46,6 +48,8 @@ species_plot <-ggplot(refseq, aes(x=date_of_release, y=unique_species)) +
   labs(y='Number of Unique Species',
        x='Date of Release',
        title='Number of Unique Species in NCBI RefSeq') +
+  scale_y_continuous(limits = c(0,(max(refseq$unique_species)+10000) ),
+                     breaks= seq(0,max((refseq$unique_species)+10000 ), 20000)) +
   theme_pubclean() +
   theme(plot.title=element_text(hjust=0.5))
 
